@@ -1,0 +1,4 @@
+faicons==0.2.2
+openai==1.30.4
+shiny==1.0.0
+shinyswatch==0.7.0
