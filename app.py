@@ -2,9 +2,9 @@ from pathlib import Path
 
 from faicons import icon_svg
 import openai
-from openai import OpenAIError
 from shiny import App, ui, reactive
 from shinyswatch import theme
+
 
 
 _SYSTEM_MSG = """
@@ -99,30 +99,57 @@ app_ui = ui.page_fillable(
 # server ------------------------------------------------------------------
 def server(input, output, session):
 
-    chat = ui.Chat(id="chat", messages=[welcome])
+    chat = ui.Chat(id="chat", messages=[welcome], tokenizer=None)
+
+
+    async def check_moderation(prompt, api_key):
+        client = openai.AsyncOpenAI(api_key=api_key)
+        response = await client.moderations.create(input=prompt)
+        content = response.results[0].to_dict()
+        if content["flagged"]:
+            infringements = []
+            for key, val in content["categories"].items():
+                if val:
+                    infringements.append(key)
+            return " & ".join(infringements)
+        else:
+            return "good prompt"
+
+
     # Define a callback to run when the user submits a message
     @chat.on_user_submit
     async def _():
         # Get the user's input
         user = chat.user_input()
-        #  update the stream list
-        stream.append({"role": "user", "content": user})
-        # Append a response to the chat
-        client = openai.OpenAI(api_key=input.key_input())
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=stream
-            )
-        model_response = response.choices[0].message.content
-        await chat.append_message(model_response)
-        if "the end..." in model_response.lower():
-            await chat.append_message(
-                {"role": "assistant",
-                "content": "Game Over! Refresh the page to play again."}
-                )
-            exit()
+        
+        # Check moderation
+        flag_check = await check_moderation(user, input.key_input())
+        
+        if flag_check != "good prompt":
+            await chat.append_message({
+                "role": "assistant",
+                "content": f"I'm sorry, but your message may violate OpenAI's usage policy, categories: {flag_check}. Please rephrase your input and try again."
+            })
         else:
-            stream.append({"role": "assistant", "content": model_response})
+            #  update the stream list
+            stream.append({"role": "user", "content": user})
+            # Append a response to the chat
+            client = openai.AsyncOpenAI(api_key=input.key_input())
+            response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=stream
+            )
+            model_response = response.choices[0].message.content
+            await chat.append_message(model_response)
+
+            if "the end..." in model_response.lower():
+                await chat.append_message(
+                    {"role": "assistant",
+                    "content": "Game Over! Refresh the page to play again."}
+                    )
+                exit()
+            else:
+                stream.append({"role": "assistant", "content": model_response})
 
 
 app_dir = Path(__file__).parent
