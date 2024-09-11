@@ -138,11 +138,17 @@ def server(input, output, session):
 
     @reactive.Effect
     @reactive.event(input.key_input_btn)
-    def handle_api_key_submit():
+    def handle_api_key_submit(
+        reactive_client:reactive.Value=openai_client):
         """Update the UI with a notification when user submits key.
         
         Checks the validity of the API key by querying the models list
         endpoint.
+
+        Args:
+            reactive_client (reactive.Value): The reactive value holding 
+            an OpenAI client instance.
+
         """
         api_key = input.key_input_text()
         client = openai.AsyncOpenAI(api_key=api_key)
