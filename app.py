@@ -57,9 +57,18 @@ welcome = ui.markdown(
     WELCOME_MSG
 )
 
-
+def input_text_with_button(id, label, button_label, placeholder=""):
+    return ui.div(
+        ui.input_text(id=f"{id}_text", label=label, placeholder=placeholder),
+        ui.input_action_button(id=f"{id}_btn", label=button_label),
+        class_="d-flex align-items-end gap-2"
+    )
+        
 # ui ----------------------------------------------------------------------
 app_ui = ui.page_fillable(
+
+
+
 
     ui.div(
         ui.div(ui.p("Powered by"), style="float:left;"),
@@ -76,7 +85,12 @@ app_ui = ui.page_fillable(
         ui.div(
             icon_svg("key", a11y="decorative", position="absolute"),
                 style="float:left;padding-left:12.2rem;"),
-        ui.input_text(id="key_input", label="Enter your openai api key"),
+        input_text_with_button(
+            id="key_input",
+            label="Enter your OpenAI API key",
+            button_label="Submit",
+            placeholder="Enter API key here"
+        ),
         ui.markdown(
             "**Note:** The app does not store your key when the session ends."
             ),
@@ -102,7 +116,31 @@ def server(input, output, session):
     chat = ui.Chat(id="chat", messages=[welcome], tokenizer=None)
 
 
-    async def check_moderation(prompt, api_key):
+    @reactive.Effect
+    @reactive.event(input.key_input_btn)
+    def handle_api_key_submit():
+        """Update the UI with a notification when user submits key."""
+        api_key = input.key_input_text()
+        if api_key:
+            ui.notification_show(f"API key submitted: {api_key[:5]}...")
+        else:
+            ui.notification_show("Please enter an API key", type="warning")
+
+
+    async def check_moderation(prompt:str, api_key:str) -> str:
+        """Check if the prompt is flagged by OpenAI's moderation tool.
+
+        Awaits the response from the OpenAI moderation tool before
+        attempting to access the content.
+
+        Args:
+            prompt (str): The user's prompt to check.
+            api_key (str): The API key submitted by the user.
+
+        Returns:
+            str: The categories that the prompt is flagged for if flagged,
+            otherwise "good prompt".
+        """
         client = openai.AsyncOpenAI(api_key=api_key)
         response = await client.moderations.create(input=prompt)
         content = response.results[0].to_dict()
@@ -118,23 +156,23 @@ def server(input, output, session):
 
     # Define a callback to run when the user submits a message
     @chat.on_user_submit
-    async def _():
+    async def respond():
+        """Logic for handling prompt & appending to chat stream."""
         # Get the user's input
-        user = chat.user_input()
-        
+        usr_prompt = chat.user_input()
         # Check moderation
-        flag_check = await check_moderation(user, input.key_input())
-        
+        flag_check = await check_moderation(
+            usr_prompt, input.key_input_text())
         if flag_check != "good prompt":
             await chat.append_message({
                 "role": "assistant",
-                "content": f"I'm sorry, but your message may violate OpenAI's usage policy, categories: {flag_check}. Please rephrase your input and try again."
+                "content": f"Your message may violate OpenAI's usage policy, categories: {flag_check}. Please rephrase your input and try again."
             })
         else:
             #  update the stream list
-            stream.append({"role": "user", "content": user})
+            stream.append({"role": "user", "content": usr_prompt})
             # Append a response to the chat
-            client = openai.AsyncOpenAI(api_key=input.key_input())
+            client = openai.AsyncOpenAI(api_key=input.key_input_text())
             response = await client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=stream
@@ -145,11 +183,12 @@ def server(input, output, session):
             if "the end..." in model_response.lower():
                 await chat.append_message(
                     {"role": "assistant",
-                    "content": "Game Over! Refresh the page to play again."}
+                    "content": "Game Over! Click refresh to play again."}
                     )
                 exit()
             else:
-                stream.append({"role": "assistant", "content": model_response})
+                stream.append(
+                    {"role": "assistant", "content": model_response})
 
 
 app_dir = Path(__file__).parent
