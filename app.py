@@ -119,13 +119,22 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.key_input_btn)
     def handle_api_key_submit():
-        """Update the UI with a notification when user submits key."""
+        """Update the UI with a notification when user submits key.
+        
+        Checks the validity of the API key by querying the models list
+        endpoint.
+        """
         api_key = input.key_input_text()
-        if api_key:
-            ui.notification_show(f"API key submitted: {api_key[:5]}...")
-        else:
-            ui.notification_show("Please enter an API key", type="warning")
-
+        client = openai.OpenAI(api_key=api_key)
+        try:
+            resp = client.models.list()
+            if resp:
+                ui.notification_show(
+                    f"API key validated: {api_key[:5]}...")
+        except openai.AuthenticationError as e:
+            ui.notification_show(
+                "Bad key provided. Please try again.", type="warning")
+            
 
     async def check_moderation(prompt:str, api_key:str) -> str:
         """Check if the prompt is flagged by OpenAI's moderation tool.
