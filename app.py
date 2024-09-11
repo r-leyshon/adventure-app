@@ -134,7 +134,7 @@ def server(input, output, session):
 
     @reactive.Effect
     @reactive.event(input.key_input_btn)
-    def handle_api_key_submit(
+    async def handle_api_key_submit(
         reactive_client:reactive.Value=openai_client):
         """Update the UI with a notification when user submits key.
         
@@ -149,7 +149,7 @@ def server(input, output, session):
         api_key = input.key_input_text()
         client = openai.AsyncOpenAI(api_key=api_key)
         try:
-            resp = client.models.list()
+            resp = await client.models.list()
             if resp:
                 openai_client.set(client)
                 ui.notification_show(
