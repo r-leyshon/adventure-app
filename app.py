@@ -192,7 +192,7 @@ def server(input, output, session):
             if "the end..." in model_response.lower():
                 await chat.append_message(
                     {"role": "assistant",
-                    "content": "Game Over! Click refresh to play again."}
+                    "content": "Game Over! Click refresh to play again. Remember to add your API key once more if playing again."}
                     )
                 exit()
             else:
