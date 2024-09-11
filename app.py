@@ -64,7 +64,8 @@ def input_text_with_button(id, label, button_label, placeholder=""):
     and <id>_btn respectively.
     """
     return ui.div(
-        ui.input_text(id=f"{id}_text", label=label, placeholder=placeholder),
+        ui.input_text(
+            id=f"{id}_text", label=label, placeholder=placeholder),
         ui.input_action_button(id=f"{id}_btn", label=button_label),
         class_="d-flex align-items-end gap-2"
     )
@@ -81,8 +82,13 @@ app_ui = ui.page_fillable(
             ui.img(src="openai.png", width="60rem"),
             style="float:left;padding-left:0.2rem;"
             ),
-        ui.div(ui.p(f", made with "), style="float: left;padding-left:0.2rem"),
-        ui.img(src="shiny-for-python.svg", width="100rem", style="padding-left:0.2rem;padding-top:0.2rem;float:left;"),
+        ui.div(
+            ui.p(f", made with "),
+            style="float: left;padding-left:0.2rem"),
+        ui.img(
+            src="shiny-for-python.svg",
+            width="100rem",
+            style="padding-left:0.2rem;padding-top:0.2rem;float:left;"),
     ),
     ui.panel_title("Choose Your Own Adventure: Jungle Quest!"),
     ui.accordion(
@@ -97,16 +103,21 @@ app_ui = ui.page_fillable(
             placeholder="Enter API key here"
         ),
         ui.markdown(
-            "**Note:** The app does not store your key when the session ends."
+            "**Note:** The app doesn't store your key when the session ends."
             ),
         ui.p(
-            "Using openai api costs money. Please monitor your account fees."),
-        ui.markdown("To get an API key, follow to [OpenAI API Sign Up](https://openai.com/index/openai-api/)"),
+            "Using openai api costs money. Monitor your account fees."),
+        ui.markdown(
+            "To get an API key, follow to [OpenAI API Sign Up](https://openai.com/index/openai-api/)"
+            ),
     ), id="acc", multiple=False, icon=str(icon_svg("key")),
     ), 
     ui.div(
-        ui.div(ui.h6("Step 2: Choose your adventure"), style="float:left;"),
-        ui.div(icon_svg("dungeon", a11y="decorative", position="absolute"), style="float:left;padding-left:0.2rem;"),
+        ui.div(
+            ui.h6("Step 2: Choose your adventure"), style="float:left;"),
+        ui.div(
+            icon_svg("dungeon", a11y="decorative", position="absolute"),
+            style="float:left;padding-left:0.2rem;"),
     ),
         ui.chat_ui("chat"),
         theme=theme.darkly,
