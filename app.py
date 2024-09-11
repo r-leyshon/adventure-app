@@ -66,8 +66,12 @@ def input_text_with_button(id, label, button_label, placeholder=""):
     return ui.div(
         ui.input_text(
             id=f"{id}_text", label=label, placeholder=placeholder),
-        ui.input_action_button(id=f"{id}_btn", label=button_label),
-        class_="d-flex align-items-end gap-2"
+        ui.input_action_button(
+            id=f"{id}_btn",
+            label=button_label,
+            style="margin-top:32px;margin-bottom:32px;color:#04bb8c;border-color:#04bb8c;"
+            ),
+        class_="d-flex gap-2"
     )
         
 # ui ----------------------------------------------------------------------
