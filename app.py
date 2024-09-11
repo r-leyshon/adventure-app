@@ -132,7 +132,7 @@ app_ui = ui.page_fillable(
 
 # server ------------------------------------------------------------------
 def server(input, output, session):
-
+    openai_client = reactive.Value(None)
     chat = ui.Chat(id="chat", messages=[welcome], tokenizer=None)
 
 
@@ -145,10 +145,11 @@ def server(input, output, session):
         endpoint.
         """
         api_key = input.key_input_text()
-        client = openai.OpenAI(api_key=api_key)
+        client = openai.AsyncOpenAI(api_key=api_key)
         try:
             resp = client.models.list()
             if resp:
+                openai_client.set(client)
                 ui.notification_show(
                     f"API key validated: {api_key[:5]}...")
         except openai.AuthenticationError as e:
@@ -170,8 +171,7 @@ def server(input, output, session):
             str: The categories that the prompt is flagged for if flagged,
             otherwise "good prompt".
         """
-        client = openai.AsyncOpenAI(api_key=api_key)
-        response = await client.moderations.create(input=prompt)
+        response = await openai_client.get().moderations.create(input=prompt)
         content = response.results[0].to_dict()
         if content["flagged"]:
             infringements = []
@@ -201,8 +201,7 @@ def server(input, output, session):
             #  update the stream list
             stream.append({"role": "user", "content": usr_prompt})
             # Append a response to the chat
-            client = openai.AsyncOpenAI(api_key=input.key_input_text())
-            response = await client.chat.completions.create(
+            response = await openai_client.get().chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=stream
             )
