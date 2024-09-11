@@ -72,10 +72,6 @@ def input_text_with_button(id, label, button_label, placeholder=""):
         
 # ui ----------------------------------------------------------------------
 app_ui = ui.page_fillable(
-
-
-
-
     ui.div(
         ui.div(ui.p("Powered by"), style="float:left;"),
         ui.div(
@@ -103,7 +99,7 @@ app_ui = ui.page_fillable(
             placeholder="Enter API key here"
         ),
         ui.markdown(
-            "**Note:** The app doesn't store your key when the session ends."
+            "**Note:** The app doesn't store your key between sessions."
             ),
         ui.p(
             "Using openai api costs money. Monitor your account fees."),
@@ -125,7 +121,6 @@ app_ui = ui.page_fillable(
         fillable_mobile=True,
 )
 
-
 # server ------------------------------------------------------------------
 def server(input, output, session):
     openai_client = reactive.Value(None)
@@ -141,11 +136,13 @@ def server(input, output, session):
         Checks the validity of the API key by querying the models list
         endpoint.
 
-        Args:
-            reactive_client (reactive.Value): The reactive value holding 
-            an OpenAI client instance.
-
+        Parameters
+        ----------
+        reactive_client : reactive.Value
+            The reactive value holding an OpenAI client instance,
+            openai_client by default.
         """
+
         api_key = input.key_input_text()
         client = openai.AsyncOpenAI(api_key=api_key)
         try:
@@ -159,21 +156,30 @@ def server(input, output, session):
                 "Bad key provided. Please try again.", type="warning")
             
 
-    async def check_moderation(prompt:str, api_key:str) -> str:
+    async def check_moderation(
+            prompt:str, reactive_client:reactive.Value=openai_client
+            ) -> str:
         """Check if the prompt is flagged by OpenAI's moderation tool.
 
         Awaits the response from the OpenAI moderation tool before
         attempting to access the content.
 
-        Args:
-            prompt (str): The user's prompt to check.
-            api_key (str): The API key submitted by the user.
+        Parameters
+        ----------
+        prompt : str
+            The user's prompt to check.
+        reactive_client : reactive.Value
+            The reactive value holding an OpenAI client instance,
+            openai_client by default.
 
-        Returns:
-            str: The categories that the prompt is flagged for if flagged,
-            otherwise "good prompt".
+        Returns
+        -------
+        str
+            The category violations if flagged, otherwise "good prompt".
         """
-        response = await openai_client.get().moderations.create(input=prompt)
+
+        response = await openai_client.get().moderations.create(
+            input=prompt)
         content = response.results[0].to_dict()
         if content["flagged"]:
             infringements = []
