@@ -3,10 +3,8 @@ name: Deploy to shinyapps.io
 on:
   push:
     tags:
-      - 'v*'  # Trigger on any tag starting with 'v'
-    branches:
-      - main  # Only consider tags on the main branch
-
+      - v*.*.*
+      
 jobs:
   deploy:
     runs-on: ubuntu-latest
