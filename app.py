@@ -58,6 +58,11 @@ welcome = ui.markdown(
 )
 
 def input_text_with_button(id, label, button_label, placeholder=""):
+    """
+    An interface component combining an input text widget with an action
+    button. IDs for the text field and button can be accessed as <id>_text
+    and <id>_btn respectively.
+    """
     return ui.div(
         ui.input_text(id=f"{id}_text", label=label, placeholder=placeholder),
         ui.input_action_button(id=f"{id}_btn", label=button_label),
