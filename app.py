@@ -30,10 +30,6 @@ later in the game.
 include the text "The End...", I will search for this text to end the game.
 """
 
-# compose the messages log
-_SYS = {"role": "system", "content": _SYSTEM_MSG}
-stream = [_SYS]
-
 WELCOME_MSG = """
 Welcome to the Amazon Rainforest, adventurer! Your mission is to find the
 lost Crown of Quetzalcoatl:\n
@@ -49,8 +45,8 @@ many dangers.
 """
 # compose the messages log
 _SYS = {"role": "system", "content": _SYSTEM_MSG}
-stream = [_SYS]
-stream.append({"role": "assistant", "content": WELCOME_MSG})
+_WELCOME = {"role": "assistant", "content": WELCOME_MSG}
+stream = [_SYS, _WELCOME]
 
 # Create a welcome message
 welcome = ui.markdown(
