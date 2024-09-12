@@ -9,6 +9,7 @@ from shinyswatch import theme
 
 from constants import WELCOME_MSG, stream
 from handle_credentials import api_key_ui, api_key_server
+from moderations import check_moderation
         
 # ui ----------------------------------------------------------------------
 # Create a welcome message for use in chat stream
@@ -50,54 +51,18 @@ app_ui = ui.page_fillable(
 
 # server ------------------------------------------------------------------
 def server(input, output, session):
-    # openai_client = reactive.Value(None)
     chat = ui.Chat(id="chat", messages=[welcome], tokenizer=None)
+    # if API key is valid, openai_client will be instantiated.
     openai_client = api_key_server("api_key")
-
-
-    async def check_moderation(
-            prompt:str, reactive_client:reactive.Value=openai_client
-            ) -> str:
-        """Check if the prompt is flagged by OpenAI's moderation tool.
-
-        Awaits the response from the OpenAI moderation tool before
-        attempting to access the content.
-
-        Parameters
-        ----------
-        prompt : str
-            The user's prompt to check.
-        reactive_client : reactive.Value
-            The reactive value holding an OpenAI client instance,
-            openai_client by default.
-
-        Returns
-        -------
-        str
-            The category violations if flagged, otherwise "good prompt".
-        """
-
-        response = await openai_client.get().moderations.create(
-            input=prompt)
-        content = response.results[0].to_dict()
-        if content["flagged"]:
-            infringements = []
-            for key, val in content["categories"].items():
-                if val:
-                    infringements.append(key)
-            return " & ".join(infringements)
-        else:
-            return "good prompt"
-
-
     # Define a callback to run when the user submits a message
     @chat.on_user_submit
     async def respond():
-        """Logic for handling prompt & appending to chat stream."""
+        """Logic for handling prompts & appending to chat stream."""
         # Get the user's input
         usr_prompt = chat.user_input()
-        # Check moderation
-        flag_check = await check_moderation(usr_prompt)
+        # Check moderations endpoint incase openai policies are violated
+        flag_check = await check_moderation(
+            prompt=usr_prompt, reactive_client=openai_client)
         if flag_check != "good prompt":
             await chat.append_message({
                 "role": "assistant",
