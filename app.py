@@ -8,30 +8,13 @@ from shiny import App, ui, reactive
 from shinyswatch import theme
 
 from constants import WELCOME_MSG, stream
-
-# Create a welcome message
+from handle_credentials import api_key_ui, api_key_server
+        
+# ui ----------------------------------------------------------------------
+# Create a welcome message for use in chat stream
 welcome = ui.markdown(
     WELCOME_MSG
 )
-
-def input_text_with_button(id, label, button_label, placeholder=""):
-    """
-    An interface component combining an input text widget with an action
-    button. IDs for the text field and button can be accessed as <id>_text
-    and <id>_btn respectively.
-    """
-    return ui.div(
-        ui.input_text(
-            id=f"{id}_text", label=label, placeholder=placeholder),
-        ui.input_action_button(
-            id=f"{id}_btn",
-            label=button_label,
-            style="margin-top:32px;margin-bottom:32px;color:#04bb8c;border-color:#04bb8c;"
-            ),
-        class_="d-flex gap-2"
-    )
-        
-# ui ----------------------------------------------------------------------
 app_ui = ui.page_fillable(
     ui.div(
         ui.div(ui.p("Powered by"), style="float:left;"),
@@ -49,25 +32,8 @@ app_ui = ui.page_fillable(
     ),
     ui.panel_title("Choose Your Own Adventure: Jungle Quest!"),
     ui.accordion(
-    ui.accordion_panel("Step 1: Your OpenAI API Key",
-        ui.div(
-            icon_svg("key", a11y="decorative", position="absolute"),
-                style="float:left;padding-left:12.2rem;"),
-        input_text_with_button(
-            id="key_input",
-            label="Enter your OpenAI API key",
-            button_label="Submit",
-            placeholder="Enter API key here"
-        ),
-        ui.markdown(
-            "**Note:** The app doesn't store your key between sessions."
-            ),
-        ui.p(
-            "Using openai api costs money. Monitor your account fees."),
-        ui.markdown(
-            "To get an API key, follow to [OpenAI API Sign Up](https://openai.com/index/openai-api/)"
-            ),
-    ), id="acc", multiple=False, icon=str(icon_svg("key")),
+        api_key_ui("api_key"),
+        id="acc", multiple=False, icon=str(icon_svg("key")),
     ), 
     ui.div(
         ui.div(
@@ -84,38 +50,10 @@ app_ui = ui.page_fillable(
 
 # server ------------------------------------------------------------------
 def server(input, output, session):
-    openai_client = reactive.Value(None)
+    # openai_client = reactive.Value(None)
     chat = ui.Chat(id="chat", messages=[welcome], tokenizer=None)
+    openai_client = api_key_server("api_key")
 
-
-    @reactive.Effect
-    @reactive.event(input.key_input_btn)
-    async def handle_api_key_submit(
-        reactive_client:reactive.Value=openai_client):
-        """Update the UI with a notification when user submits key.
-        
-        Checks the validity of the API key by querying the models list
-        endpoint.
-
-        Parameters
-        ----------
-        reactive_client : reactive.Value
-            The reactive value holding an OpenAI client instance,
-            openai_client by default.
-        """
-
-        api_key = input.key_input_text()
-        client = openai.AsyncOpenAI(api_key=api_key)
-        try:
-            resp = await client.models.list()
-            if resp:
-                openai_client.set(client)
-                ui.notification_show(
-                    f"API key validated: {api_key[:5]}...")
-        except openai.AuthenticationError as e:
-            ui.notification_show(
-                "Bad key provided. Please try again.", type="warning")
-            
 
     async def check_moderation(
             prompt:str, reactive_client:reactive.Value=openai_client
@@ -159,8 +97,7 @@ def server(input, output, session):
         # Get the user's input
         usr_prompt = chat.user_input()
         # Check moderation
-        flag_check = await check_moderation(
-            usr_prompt, input.key_input_text())
+        flag_check = await check_moderation(usr_prompt)
         if flag_check != "good prompt":
             await chat.append_message({
                 "role": "assistant",
