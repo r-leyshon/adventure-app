@@ -1,3 +1,4 @@
+"""Handle the API key input and validation."""
 from shiny import ui, module, reactive
 from faicons import icon_svg
 import openai
@@ -91,5 +92,5 @@ def api_key_server(input, output, session) -> reactive.Value:
             ui.notification_show(
                 "Bad key provided. Please try again.", type="warning")
     
-    
+
     return openai_client
