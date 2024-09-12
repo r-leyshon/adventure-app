@@ -33,7 +33,7 @@ COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy only necessary files
-COPY app.py .
+COPY *.py .
 COPY www ./www
 
 # Change ownership of the app directory
