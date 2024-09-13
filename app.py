@@ -30,6 +30,14 @@ app_ui = ui.page_fillable(
             src="shiny-for-python.svg",
             width="100rem",
             style="padding-left:0.2rem;padding-top:0.2rem;float:left;"),
+        ui.div(
+            ui.a(
+                icon_svg("github", width="25px", fill="currentColor"),
+                href="https://github.com/r-leyshon/adventure-app",
+                target="_blank",
+            ),
+            style="float:right;"
+        ),
     ),
     ui.panel_title("Choose Your Own Adventure: Jungle Quest!"),
     ui.accordion(
