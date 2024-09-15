@@ -1,5 +1,6 @@
-"""Iteration 2: Add system & welcome prompts."""
+"""Iteration 3: A basic user interface with no server logic."""
 import openai
+from shiny import App, ui
 
 _SYSTEM_MSG = """
 You are the guide of a 'choose your own adventure'- style game: a mystical
@@ -81,7 +82,16 @@ def query_openai(
         raise ValueError(f"Is your API key valid?:\n {e}")
 
 
-model_response = query_openai(
-    prompt="What is the capital of the moon?",
-    api_key="sk-proj-1234567890"
-    )
+# Shiny User Interface ----------------------------------------------------
+
+app_ui = ui.page_fillable(
+    ui.panel_title("Choose Your Own Adventure: Jungle Quest!"),
+    ui.accordion(
+    ui.accordion_panel("Step 1: Your OpenAI API Key",
+        ui.input_text(id="key_input", label="Enter your openai api key"),
+    ), id="acc", multiple=False),
+    ui.chat_ui(id="chat"),
+    fillable_mobile=True,
+)
+
+app = App(app_ui, server=None)
