@@ -1,4 +1,4 @@
-"""Iteration 3: A basic user interface with no server logic."""
+"""Iteration 4: Server logic allows us to create a chat log."""
 import openai
 from shiny import App, ui
 
@@ -37,50 +37,10 @@ weapon to bring with you. Choose wisely, as the way ahead is filled with
 many dangers.
 """
 
-
-def query_openai(
-        prompt: str,
-        api_key: str,
-        sys_prompt:str = _SYSTEM_MSG,
-        start_prompt:str = WELCOME_MSG,
-        ) -> str:
-    """Query the chat completions endpoint.
-
-    Parameters
-    ----------
-    prompt: str
-        The prompt to query the chat completions endpoint with.
-    api_key: str
-        The API key to use to query the chat completions endpoint.
-    sys_prompt: str
-        The system prompt to help guide the model behaviour. By default,
-        the system prompt is set to _SYSTEM_MSG.
-    start_prompt: str
-        The start prompt which will be presented to the user as the app
-        begins. By default, the start prompt is set to WELCOME_MSG.
-
-    Returns
-    -------
-    str
-        The response from the chat completions endpoint.
-    """
-
-    client = openai.OpenAI(api_key=api_key)
-    # need to handle cases where queries go wrong.
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": sys_prompt},
-                {"role": "assistant", "content": start_prompt},
-                {"role": "user", "content": prompt},
-            ]
-        )
-        return response.choices[0].message.content
-    # in cases where the API key is invalid.
-    except openai.AuthenticationError as e:
-        raise ValueError(f"Is your API key valid?:\n {e}")
-
+# compose a message stream
+_SYS = {"role": "system", "content": _SYSTEM_MSG}
+_WELCOME = {"role": "assistant", "content": WELCOME_MSG}
+stream = [_SYS, _WELCOME]
 
 # Shiny User Interface ----------------------------------------------------
 
@@ -94,4 +54,52 @@ app_ui = ui.page_fillable(
     fillable_mobile=True,
 )
 
-app = App(app_ui, server=None)
+# Shiny server logic ------------------------------------------------------
+
+
+def server(input, output, session):
+    chat = ui.Chat(
+        id="chat", messages=[ui.markdown(WELCOME_MSG)], tokenizer=None
+        )
+    
+
+    # Define a callback to run when the user submits a message
+    @chat.on_user_submit
+    async def respond():
+        """Respond to the user's message.
+        
+        We use async here because:
+        1. It allows the function to perform I/O operations
+        (like API calls) without blocking the entire application.
+        2. It improves responsiveness, especially when dealing with
+        potentially slow network requests to the OpenAI API.
+        3. It works well with Shiny's event-driven architecture, allowing
+        other parts of the app to remain interactive while waiting for the
+        API response.
+        """
+        # Get the user's input
+        user = chat.user_input()
+        #  update the stream list
+        stream.append({"role": "user", "content": user})
+        # Append a response to the chat
+        client = openai.AsyncOpenAI(api_key=input.key_input())
+        response = await client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=stream,
+            temperature=0.7, # increase to make the model more creative
+            )
+        model_response = response.choices[0].message.content
+        await chat.append_message(model_response)
+        #  if the model indicates game over, end the game with a message.
+        if "the end..." in model_response.lower():
+            await chat.append_message(
+                {
+                    "role": "assistant",
+                    "content": "Game Over! Refresh the page to play again."
+                    })
+            exit()
+        else:
+            stream.append({"role": "assistant", "content": model_response})
+
+
+app = App(ui=app_ui, server=server)
