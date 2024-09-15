@@ -1,4 +1,4 @@
-"""Iteration 1: How to query the OpenAI API."""
+"""Iteration 2: Add system & welcome prompts."""
 import openai
 
 _SYSTEM_MSG = """
