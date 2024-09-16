@@ -1,6 +1,6 @@
-"""Iteration 4: Server logic allows us to create a chat log."""
+"""Iteration 5: Submit button & notifications for the user."""
 import openai
-from shiny import App, ui
+from shiny import App, reactive, ui
 
 _SYSTEM_MSG = """
 You are the guide of a 'choose your own adventure'- style game: a mystical
@@ -44,12 +44,36 @@ stream = [_SYS, _WELCOME]
 
 # Shiny User Interface ----------------------------------------------------
 
+
+def input_text_with_button(id, label, button_label, placeholder=""):
+    """
+    An interface component combining an input text widget with an action
+    button. IDs for the text field and button can be accessed as <id>_text
+    and <id>_btn respectively.
+    """
+    return ui.div(
+        ui.input_text(
+            id=f"{id}_text", label=label, placeholder=placeholder),
+        ui.input_action_button(
+            id=f"{id}_btn",
+            label=button_label,
+            style="margin-top:28px;margin-bottom:16px;color:#04bb8c;border-color:#04bb8c;"
+            ),
+        class_="d-flex gap-2"
+    )
+
+
 app_ui = ui.page_fillable(
     ui.panel_title("Choose Your Own Adventure: Jungle Quest!"),
     ui.accordion(
     ui.accordion_panel("Step 1: Your OpenAI API Key",
-        ui.input_text(id="key_input", label="Enter your openai api key"),
-    ), id="acc", multiple=False),
+        input_text_with_button(
+            id="key_input",
+            label="Enter your OpenAI API key",
+            button_label="Submit",
+            placeholder="Enter key here"
+            )), id="acc", multiple=False),
+ui.h6("Step 2: Choose your adventure"),
     ui.chat_ui(id="chat"),
     fillable_mobile=True,
 )
@@ -61,7 +85,18 @@ def server(input, output, session):
     chat = ui.Chat(
         id="chat", messages=[ui.markdown(WELCOME_MSG)], tokenizer=None
         )
-    
+
+
+    @reactive.Effect
+    @reactive.event(input.key_input_btn)
+    def handle_api_key_submit():
+        """Update the UI with a notification when user submits key."""
+        api_key = input.key_input_text()
+        if api_key:
+            ui.notification_show(f"API key submitted: {api_key[:5]}...")
+        else:
+            ui.notification_show("Please enter an API key", type="warning")
+
 
     # Define a callback to run when the user submits a message
     @chat.on_user_submit
@@ -82,7 +117,7 @@ def server(input, output, session):
         #  update the stream list
         stream.append({"role": "user", "content": user})
         # Append a response to the chat
-        client = openai.AsyncOpenAI(api_key=input.key_input())
+        client = openai.AsyncOpenAI(api_key=input.key_input_text())
         response = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=stream,
