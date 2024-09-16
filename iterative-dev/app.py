@@ -1,4 +1,4 @@
-"""Iteration 6: Check the key is valid."""
+"""Iteration 7: Implement prompt moderation."""
 import openai
 from shiny import App, reactive, ui
 
@@ -86,6 +86,7 @@ def server(input, output, session):
         id="chat", messages=[ui.markdown(WELCOME_MSG)], tokenizer=None
         )
 
+
     @reactive.Effect
     @reactive.event(input.key_input_btn)
     async def handle_api_key_submit():
@@ -103,6 +104,33 @@ def server(input, output, session):
         except openai.AuthenticationError as e:
             ui.notification_show(
                 "Bad key provided. Please try again.", type="warning")
+    
+
+    async def check_moderation(prompt:str) -> str:
+        """Check if prompt is flagged by OpenAI's moderation endpoint.
+
+        Parameters
+        ----------
+        prompt : str
+            The user's prompt to check.
+
+        Returns
+        -------
+        str
+            The category violations if flagged, otherwise "good prompt".
+        """
+        client = openai.AsyncOpenAI(api_key=input.key_input_text())
+        response = await client.moderations.create(
+            input=prompt)
+        content = response.results[0].to_dict()
+        if content["flagged"]:
+            infringements = []
+            for key, val in content["categories"].items():
+                if val:
+                    infringements.append(key)
+            return " & ".join(infringements)
+        else:
+            return "good prompt"
 
 
     # Define a callback to run when the user submits a message
@@ -120,28 +148,38 @@ def server(input, output, session):
         API response.
         """
         # Get the user's input
-        user = chat.user_input()
-        #  update the stream list
-        stream.append({"role": "user", "content": user})
-        # Append a response to the chat
-        client = openai.AsyncOpenAI(api_key=input.key_input_text())
-        response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=stream,
-            temperature=0.7, # increase to make the model more creative
-            )
-        model_response = response.choices[0].message.content
-        await chat.append_message(model_response)
-        #  if the model indicates game over, end the game with a message.
-        if "the end..." in model_response.lower():
-            await chat.append_message(
-                {
-                    "role": "assistant",
-                    "content": "Game Over! Refresh the page to play again."
-                    })
-            exit()
+        usr_prompt = chat.user_input()
+
+        # Check moderations endpoint incase openai policies are violated
+        flag_check = await check_moderation(prompt=usr_prompt)
+        if flag_check != "good prompt":
+            await chat.append_message({
+                "role": "assistant",
+                "content": f"Your message may violate OpenAI's usage policy, categories: {flag_check}. Please rephrase your input and try again."
+            })
         else:
-            stream.append({"role": "assistant", "content": model_response})
+            #  update the stream list
+            stream.append({"role": "user", "content": usr_prompt})
+            # Append a response to the chat
+            client = openai.AsyncOpenAI(api_key=input.key_input_text())
+            response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=stream,
+                temperature=0.7, # increase to make the model more creative
+                )
+            model_response = response.choices[0].message.content
+            await chat.append_message(model_response)
+            #  if the model indicates game over, end game with a message.
+            if "the end..." in model_response.lower():
+                await chat.append_message(
+                    {
+                        "role": "assistant",
+                        "content": "Game Over! Refresh to play again."
+                        })
+                exit()
+            else:
+                stream.append(
+                    {"role": "assistant", "content": model_response})
 
 
 app = App(ui=app_ui, server=server)
