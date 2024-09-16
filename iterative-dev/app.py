@@ -1,4 +1,4 @@
-"""Iteration 5: Submit button & notifications for the user."""
+"""Iteration 6: Check the key is valid."""
 import openai
 from shiny import App, reactive, ui
 
@@ -86,16 +86,23 @@ def server(input, output, session):
         id="chat", messages=[ui.markdown(WELCOME_MSG)], tokenizer=None
         )
 
-
     @reactive.Effect
     @reactive.event(input.key_input_btn)
-    def handle_api_key_submit():
-        """Update the UI with a notification when user submits key."""
+    async def handle_api_key_submit():
+        """Update the UI with a notification when user submits key.
+        
+        Checks the validity of the API key by querying the models list
+        endpoint."""
         api_key = input.key_input_text()
-        if api_key:
-            ui.notification_show(f"API key submitted: {api_key[:5]}...")
-        else:
-            ui.notification_show("Please enter an API key", type="warning")
+        client = openai.AsyncOpenAI(api_key=api_key)
+        try:
+            resp = await client.models.list()
+            if resp:
+                ui.notification_show(
+                    f"API key validated: {api_key[:5]}...")
+        except openai.AuthenticationError as e:
+            ui.notification_show(
+                "Bad key provided. Please try again.", type="warning")
 
 
     # Define a callback to run when the user submits a message
