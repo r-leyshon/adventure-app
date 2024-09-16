@@ -1,4 +1,4 @@
-"""Iteration 7: Implement prompt moderation."""
+"""Iteration 8: Refactor OpenAI client instantiation."""
 import openai
 from shiny import App, reactive, ui
 
@@ -85,6 +85,8 @@ def server(input, output, session):
     chat = ui.Chat(
         id="chat", messages=[ui.markdown(WELCOME_MSG)], tokenizer=None
         )
+    #  define a reactive value that will store the openai client
+    openai_client = reactive.Value(None)
 
 
     @reactive.Effect
@@ -99,6 +101,7 @@ def server(input, output, session):
         try:
             resp = await client.models.list()
             if resp:
+                openai_client.set(client)
                 ui.notification_show(
                     f"API key validated: {api_key[:5]}...")
         except openai.AuthenticationError as e:
@@ -106,20 +109,24 @@ def server(input, output, session):
                 "Bad key provided. Please try again.", type="warning")
     
 
-    async def check_moderation(prompt:str) -> str:
+    async def check_moderation(
+            prompt:str, reactive_client:reactive.Value
+            ) -> str:
         """Check if prompt is flagged by OpenAI's moderation endpoint.
 
         Parameters
         ----------
         prompt : str
             The user's prompt to check.
+        reactive_client : reactive.Value
+            A reactive value that stores the openai client.
 
         Returns
         -------
         str
             The category violations if flagged, otherwise "good prompt".
         """
-        client = openai.AsyncOpenAI(api_key=input.key_input_text())
+        client = reactive_client.get()
         response = await client.moderations.create(
             input=prompt)
         content = response.results[0].to_dict()
@@ -131,27 +138,22 @@ def server(input, output, session):
             return " & ".join(infringements)
         else:
             return "good prompt"
-
+    
 
     # Define a callback to run when the user submits a message
     @chat.on_user_submit
     async def respond():
         """Respond to the user's message.
         
-        We use async here because:
-        1. It allows the function to perform I/O operations
-        (like API calls) without blocking the entire application.
-        2. It improves responsiveness, especially when dealing with
-        potentially slow network requests to the OpenAI API.
-        3. It works well with Shiny's event-driven architecture, allowing
-        other parts of the app to remain interactive while waiting for the
-        API response.
-        """
+        First check that OpenAI's usage policies are not moderated. If this
+        passes, then respond with a message from the model. If the model
+        has ended the game, then exit the game."""
         # Get the user's input
         usr_prompt = chat.user_input()
 
         # Check moderations endpoint incase openai policies are violated
-        flag_check = await check_moderation(prompt=usr_prompt)
+        flag_check = await check_moderation(
+            prompt=usr_prompt, reactive_client=openai_client)
         if flag_check != "good prompt":
             await chat.append_message({
                 "role": "assistant",
@@ -161,8 +163,7 @@ def server(input, output, session):
             #  update the stream list
             stream.append({"role": "user", "content": usr_prompt})
             # Append a response to the chat
-            client = openai.AsyncOpenAI(api_key=input.key_input_text())
-            response = await client.chat.completions.create(
+            response = await openai_client.get().chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=stream,
                 temperature=0.7, # increase to make the model more creative
