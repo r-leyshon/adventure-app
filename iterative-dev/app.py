@@ -1,6 +1,7 @@
-"""Iteration 8: Refactor OpenAI client instantiation."""
+"""Iteration 9: Styling."""
 import openai
 from shiny import App, reactive, ui
+from shinyswatch import theme
 
 _SYSTEM_MSG = """
 You are the guide of a 'choose your own adventure'- style game: a mystical
@@ -27,7 +28,8 @@ include the text "The End...", I will search for this text to end the game.
 
 WELCOME_MSG = """
 Welcome to the Amazon Rainforest, adventurer! Your mission is to find the
-lost Crown of Quetzalcoatl.
+lost Crown of Quetzalcoatl:\n
+<div style="display: grid; place-items: center;"><img src="https://i.imgur.com/Fxa7p1D.jpeg" width=60%/></div>\n
 However, many challenges stand in your way. Are you brave enough, strong
 enough and clever enough to overcome the perils of the jungle and secure
 the crown?
@@ -57,7 +59,7 @@ def input_text_with_button(id, label, button_label, placeholder=""):
         ui.input_action_button(
             id=f"{id}_btn",
             label=button_label,
-            style="margin-top:28px;margin-bottom:16px;color:#04bb8c;border-color:#04bb8c;"
+            style="margin-top:32px;margin-bottom:16px;color:#04bb8c;border-color:#04bb8c;"
             ),
         class_="d-flex gap-2"
     )
@@ -76,6 +78,7 @@ app_ui = ui.page_fillable(
 ui.h6("Step 2: Choose your adventure"),
     ui.chat_ui(id="chat"),
     fillable_mobile=True,
+    theme=theme.darkly,
 )
 
 # Shiny server logic ------------------------------------------------------
