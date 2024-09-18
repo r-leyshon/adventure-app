@@ -1,4 +1,5 @@
 ### macOS ###
+/process/*.png
 # General
 .DS_Store
 .AppleDouble
