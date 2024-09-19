@@ -4,7 +4,7 @@ from pathlib import Path
 
 from faicons import icon_svg
 import openai
-from shiny import App, ui, reactive
+from shiny import App, ui
 from shinyswatch import theme
 
 from constants import WELCOME_MSG, stream
