@@ -13,10 +13,20 @@ from moderations import check_moderation
         
 # ui ----------------------------------------------------------------------
 # Create a welcome message for use in chat stream
+
+
 welcome = ui.markdown(
     WELCOME_MSG
 )
 app_ui = ui.page_fillable(
+    ui.head_content(
+        ui.tags.link(
+            rel="icon", type="image/png", sizes="32x32", href="favicon-32x32.png"
+        ),
+        ui.tags.link(
+            rel="icon", type="image/png", sizes="16x16", href="favicon-16x16.png"
+        ),
+    ),
     ui.div(
         ui.div(ui.p("Powered by"), style="float:left;"),
         ui.div(
