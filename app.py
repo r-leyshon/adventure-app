@@ -53,9 +53,9 @@ app_ui = ui.page_fillable(
     ),
         ui.chat_ui("chat"),
         theme=theme.darkly,
-
         fillable_mobile=True,
 )
+
 
 # server ------------------------------------------------------------------
 def server(input, output, session):
@@ -66,6 +66,7 @@ def server(input, output, session):
     @chat.on_user_submit
     async def respond():
         """Logic for handling prompts & appending to chat stream."""
+        messages = chat.messages(format="openai")
         # Get the user's input
         usr_prompt = chat.user_input()
         # Check moderations endpoint incase openai policies are violated
@@ -81,21 +82,17 @@ def server(input, output, session):
             stream.append({"role": "user", "content": usr_prompt})
             # Append a response to the chat
             response = await openai_client.get().chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=stream
+                model="chatgpt-4o-latest",
+                messages=messages,
+                stream=True,
             )
-            model_response = response.choices[0].message.content
-            await chat.append_message(model_response)
-
-            if "the end..." in model_response.lower():
+            await chat.append_message_stream(response)
+            if "the end..." in messages[-1]["content"].lower():
                 await chat.append_message(
                     {"role": "assistant",
                     "content": "Game Over! Click refresh to play again. Remember to add your API key once more if playing again."}
                     )
                 exit()
-            else:
-                stream.append(
-                    {"role": "assistant", "content": model_response})
 
 
 app_dir = Path(__file__).parent
