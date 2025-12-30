@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from faicons import icon_svg
-import openai
 from shiny import App, ui
 from shinyswatch import theme
 
@@ -12,12 +11,6 @@ from handle_credentials import api_key_ui, api_key_server
 from moderations import check_moderation
         
 # ui ----------------------------------------------------------------------
-# Create a welcome message for use in chat stream
-
-
-welcome = ui.markdown(
-    WELCOME_MSG
-)
 app_ui = ui.page_fillable(
     ui.head_content(
         ui.tags.link(
@@ -34,7 +27,7 @@ app_ui = ui.page_fillable(
             style="float:left;padding-left:0.2rem;"
             ),
         ui.div(
-            ui.p(f", made with "),
+            ui.p(", made with "),
             style="float: left;padding-left:0.2rem"),
         ui.img(
             src="shiny-for-python.svg",
@@ -69,7 +62,7 @@ app_ui = ui.page_fillable(
 
 # server ------------------------------------------------------------------
 def server(input, output, session):
-    chat = ui.Chat(id="chat", messages=[welcome], tokenizer=None)
+    chat = ui.Chat(id="chat", messages=[WELCOME_MSG], tokenizer=None)
     # if API key is valid, openai_client will be instantiated.
     openai_client = api_key_server("api_key")
     # Define a callback to run when the user submits a message
